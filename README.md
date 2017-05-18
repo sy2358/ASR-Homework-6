@@ -1,17 +1,51 @@
 # parsing feat and phn file
 
 ```
-python parse.py train/dr1/fcjf0/sx307
+python parse.py listfile name
 ```
 
-will parse `train/dr1/fcjf0/sx307.feat` and `train/dr1/fcjf0/sx307.phn` and display:
+will parse all the feats and phonemes file in listfile, align them, replace phonemes by their ID from phntable and dump the array of aligned feats/phoneme index in file `name.pkl`
+
+For each file, features are in a (#nframes,123) float numpy array, and phonemes are in a (#nframes) int numpy array.
+
+# data analysis
+
+Numbers of file in each directory:
+
+* `train/dr1`: 181
+* `train/dr2`: 363
+* `train/dr3`: 374
+* `train/dr4`: 320
+* `train/dr5`: 326
+* `train/dr6`: 165
+* `train/dr7`: 375
+* `train/dr8`: 107
+
+# how to run
+
+## build a small train file and dev file, align and build the data files
 
 ```
-#frames: 143
-sample period: 100000
-sample size (x4): 123
-parameters: 839
-feats: (143, 123)
-phn sequence: [['0', '1960', 'h#'], ['1960', '2170', 'dh'], ['2170', '2616', 'ix'], ['2616', '3905', 'm'], ['3905', '5639', 'iy'], ['5639', '6182', 'dx'], ['6182', '7400', 'iy'], ['7400', '8293', 'ng'], ['8293', '9364', 'ih'], ['9364', '10160', 'z'], ['10160', '10960', 'epi'], ['10960', '11198', 'n'], ['11198', '13707', 'aw'], ['13707', '14400', 'ix'], ['14400', '15200', 'dcl'], ['15200', '16072', 'jh'], ['16072', '18800', 'er'], ['18800', '20137', 'n'], ['20137', '20490', 'dcl'], ['20490', '20887', 'd'], ['20887', '23040', 'h#']]
+head -200 feat_train.list > feat_train_small.list
+python parse.py feat_train_small.list train_small
+tail -100 feat_train.list > feat_dev.list
+python parse.py feat_dev.list dev
 ```
+
+## train a model
+
+* Check configuration in `config.py`.
+* launch:
+
+```
+python train.py train_small.pkl dev.pkl
+```
+
+# Details
+
+The model is:
+
+* a bidirectional LSTM built using `tf.nn.bidirectional_dynamic_rnn` - input is the sequence of frames
+* dropout layer for the training
+* a logit layer - generating nphones label
 
