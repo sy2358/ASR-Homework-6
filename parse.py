@@ -20,8 +20,26 @@ def read_phntable(file):
       idx = idx + 1
   return idx2phn, phn2idx, idx
 
+# read phone group and returns dictionary phone > group
+def read_phngroup(file):
+  phn2group = {}
+  with open(file, "r") as f:
+    group = f.readline()
+    while len(group)>0:
+      assert(group[0] == '>')
+      group = group[2:].strip()
+      phones = f.readline().strip()
+      for ph in phones.split(' '):
+        phn2group[ph] = group
+      group = f.readline()
+  return phn2group
+
 # read the phoneme table
+
+print('* read phntable')
 idx2phn, phn2idx, nphones = read_phntable('phntable')
+print('* read phngroup')
+phn2group = read_phngroup('phngroup')
 
 # read feat file, and returns, nframe, sample_period, sample_size, parameters, and numpy array shaped (nframe, sample_size)
 def parse_feat(file):
@@ -67,17 +85,22 @@ setname = sys.argv[2]
 assert(setname and len(setname)>0)
 
 data = []
+print('* read data')
 with open(filelist, "r") as fl:
   for line in fl:
     line = line.strip()
     nframe, sample_period, sample_size, parameters, feats = parse_feat(line)
     phn_sequence = parse_phn(line.replace(".feat",".phn"))
     phn = alignFeatPhonem(phn2idx, feats, phn_sequence)
-    print("read "+line+" - nframes=",nframe)
+    print("  - read "+line+" - nframes=",nframe)
     data.append((feats,phn))
 
-print("read "+str(len(data))+" files - dump into "+setname+'.pkl')
+print("> read "+str(len(data))+" files - dump into "+setname+'.pkl')
+print("* dumping into "+setname+'.pkl')
 output = open(setname+'.pkl', 'wb')
 pickle.dump(data, output)
 pickle.dump(nphones, output)
+pickle.dump(idx2phn, output)
+pickle.dump(phn2idx, output)
+pickle.dump(phn2group, output)
 output.close()

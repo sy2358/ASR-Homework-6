@@ -18,6 +18,9 @@ print("read train data ("+trainset+")")
 pkl_file = open(trainset, 'rb')
 train_data = pickle.load(pkl_file)
 nphones = pickle.load(pkl_file)
+idx2phn = pickle.load(pkl_file)
+phn2idx = pickle.load(pkl_file)
+phn2group = pickle.load(pkl_file)
 print(" * ",len(train_data),"sequences")
 print(" * ",nphones,"phonemes")
 pkl_file.close()
@@ -33,7 +36,9 @@ logger = get_logger(config.log_path)
 
 # build model
 print("configure phone recognition model")
-model = PhoneModel(config, nphones, logger=logger)
+model = PhoneModel(config, nphones, phn2group, idx2phn, logger=logger)
 model.build()
 
 model.train(train_data, dev_data)
+
+print("best model saved in: ",config.model_output)

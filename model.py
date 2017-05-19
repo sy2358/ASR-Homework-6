@@ -1,16 +1,18 @@
 import numpy as np
 import os
 import tensorflow as tf
-from data_utils import minibatches, pad_sequences, get_chunks
+from data_utils import minibatches, pad_sequences
 from general_utils import Progbar, print_sentence
 
 
 class PhoneModel(object):
-    def __init__(self, config, nphones, logger=None):
+    def __init__(self, config, nphones, phn2group, idx2phn, logger=None):
         """
         Args:
             config: class with hyper parameters
             nphones: the number of phones
+            phn2group: dictionary phone > group
+            idx2phn: map phone idx > phone
             logger: logger instance
         """
         self.config     = config
@@ -22,6 +24,8 @@ class PhoneModel(object):
 
         self.logger = logger
         self.nphones = nphones
+        self.idx2phn = idx2phn
+        self.phn2group = phn2group
 
 
     def add_placeholders(self):
@@ -59,7 +63,7 @@ class PhoneModel(object):
         Returns:
             dict {placeholder: value}
         """
-        frames, sequence_lengths = pad_sequences(framelist, 0)
+        frames, sequence_lengths = pad_sequences(framelist, np.zeros((123),dtype=np.float32))
 
         # build feed dictionary
         feed = {
@@ -179,6 +183,7 @@ class PhoneModel(object):
         nbatches = (len(train) + self.config.batch_size - 1) / self.config.batch_size
         prog = Progbar(target=nbatches)
         for i, (framelist, phones) in enumerate(minibatches(train, self.config.batch_size)):
+
             fd, _ = self.get_feed_dict(framelist, phones, self.config.lr, self.config.dropout)
 
             _, train_loss, summary = sess.run([self.train_op, self.loss, self.merged], feed_dict=fd)
@@ -189,9 +194,9 @@ class PhoneModel(object):
             if i % 10 == 0:
                 self.file_writer.add_summary(summary, epoch*nbatches + i)
 
-        acc, f1 = self.run_evaluate(sess, dev)
-        self.logger.info("- dev acc {:04.2f} - f1 {:04.2f}".format(100*acc, 100*f1))
-        return acc, f1
+        acc, per = self.run_evaluate(sess, dev)
+        self.logger.info(" - dev accuracy {:04.2f} - PER {:04.2f}".format(100*acc, 100*per))
+        return acc, per
 
 
     def run_evaluate(self, sess, test):
@@ -202,29 +207,27 @@ class PhoneModel(object):
             test: dataset that yields tuple of sentences, tags
         Returns:
             accuracy
-            f1 score
+            phone error rate
         """
         accs = []
-        correct_preds, total_correct, total_preds = 0., 0., 0.
+        group_accuracy = []
         for framelist, phones in minibatches(test, self.config.batch_size):
             phones_pred, sequence_lengths = self.predict_batch(sess, framelist)
 
             for lab, lab_pred, length in zip(phones, phones_pred, sequence_lengths):
                 lab = lab[:length]
                 lab_pred = lab_pred[:length]
-                accs += map(lambda a, b: a == b, zip(lab, lab_pred))
 
-                lab_chunks = set(get_chunks(lab, tags))
-                lab_pred_chunks = set(get_chunks(lab_pred, tags))
-                correct_preds += len(lab_chunks & lab_pred_chunks)
-                total_preds += len(lab_pred_chunks)
-                total_correct += len(lab_chunks)
+                accs += map(lambda x: x[0] == x[1], zip(lab, lab_pred))
 
-        p = correct_preds / total_preds if correct_preds > 0 else 0
-        r = correct_preds / total_correct if correct_preds > 0 else 0
-        f1 = 2 * p * r / (p + r) if correct_preds > 0 else 0
+                group = [self.phn2group[self.idx2phn[x]] for x in lab]
+                group_pred = [self.phn2group[self.idx2phn[x]] for x in lab_pred]
+
+                group_accuracy += map(lambda x: x[0] == x[1], zip(group, group_pred))
+
         acc = np.mean(accs)
-        return acc, f1
+        per = 1-np.mean(group_accuracy)
+        return acc, per
 
 
     def train(self, train, dev):
@@ -234,7 +237,7 @@ class PhoneModel(object):
             train: dataset that yields tuple of frame, phoneindex
             dev: dataset
         """
-        best_score = 0
+        best_score = 2
         saver = tf.train.Saver()
         # for early stopping
         nepoch_no_imprv = 0
@@ -245,18 +248,18 @@ class PhoneModel(object):
             for epoch in range(self.config.nepochs):
                 self.logger.info("Epoch {:} out of {:}".format(epoch + 1, self.config.nepochs))
 
-                acc, f1 = self.run_epoch(sess, train, dev, epoch)
+                acc, per = self.run_epoch(sess, train, dev, epoch)
 
                 # decay learning rate
                 self.config.lr *= self.config.lr_decay
 
                 # early stopping and saving best parameters
-                if f1 >= best_score:
+                if per < best_score:
                     nepoch_no_imprv = 0
                     if not os.path.exists(self.config.model_output):
                         os.makedirs(self.config.model_output)
                     saver.save(sess, self.config.model_output)
-                    best_score = f1
+                    best_score = per
                     self.logger.info("- new best score!")
 
                 else:
