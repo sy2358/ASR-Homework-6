@@ -5,6 +5,7 @@ import numpy as np
 import math
 import sys
 import pickle
+from data_utils import normalize_mfcc
 
 # read phntable and build maps idx2phn and phn2idx
 # return also the number of phones
@@ -49,7 +50,10 @@ def parse_feat(file):
     sample_size, = struct.unpack('>h',f.read(2))
     parameters, = struct.unpack('>h',f.read(2))
     data = np.fromstring(f.read(nframe*sample_size), dtype='>f')
-    return nframe, sample_period, sample_size/4, parameters, np.reshape(data, (nframe,-1))
+    data = np.reshape(data, (nframe, -1))
+    # Normalize mfcc vector
+    norm_data = normalize_mfcc(data)
+    return nframe, sample_period, sample_size/4, parameters, norm_data
 
 # for each phn file, returns an array [begin, end, phoneme]
 def parse_phn(file):

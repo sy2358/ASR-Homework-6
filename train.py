@@ -5,6 +5,8 @@ from config import config
 import sys
 import pickle
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 trainset = sys.argv[1]
 assert os.path.exists(trainset), "first parameter should be training set"
 devset = sys.argv[2]

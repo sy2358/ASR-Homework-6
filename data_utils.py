@@ -72,3 +72,26 @@ def minibatches(data, minibatch_size):
 
     if len(x_batch) != 0:
         yield x_batch, y_batch
+
+
+def normalize_mfcc(mfcc):
+    """
+    ref: https://github.com/muncok/timit_tf/blob/master/src/timittf/preprocessing.py 
+    Normalize mfcc data using the following formula:
+
+    normalized = (mfcc - mean)/standard deviation
+
+    Args:
+        mfcc (numpy.ndarray):
+            An ndarray containing mfcc data.
+            Its shape is [samples, sentence_length, coefficients]
+
+    Returns:
+        numpy.ndarray:
+            An ndarray containing normalized mfcc data with the same shape as
+            the input.
+    """
+
+    means = np.mean(mfcc, 0)
+    stds = np.std(mfcc, 0)
+    return (mfcc - means) / stds
