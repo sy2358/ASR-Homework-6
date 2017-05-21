@@ -7,7 +7,6 @@ import sys
 import pickle
 from data_utils import normalize_mfcc
 
-# TODO: randomly split train and dev dataset
 
 # read phntable and build maps idx2phn and phn2idx
 # return also the number of phones
@@ -85,12 +84,13 @@ def alignFeatPhonem(phn2idx, feats, phn_sequence):
   return phn
 
 filelist = sys.argv[1]
-setname = sys.argv[2]
+# setname = sys.argv[2]
 
 # check we have provided filelist and name for the set
-assert(setname and len(setname)>0)
+# assert(setname and len(setname)>0)
 
-data = []
+frames = []
+phonemes = []
 print('* read data')
 with open(filelist, "r") as fl:
   for line in fl:
@@ -99,14 +99,14 @@ with open(filelist, "r") as fl:
     phn_sequence = parse_phn(line.replace(".feat",".phn"))
     phn = alignFeatPhonem(phn2idx, feats, phn_sequence)
     print("  - read "+line+" - nframes=",nframe)
-    data.append((feats,phn))
+    frames.append(feats)
+    phonemes.append(phn)
 
-print("> read "+str(len(data))+" files - dump into "+setname+'.pkl')
-print("* dumping into "+setname+'.pkl')
-output = open(setname+'.pkl', 'wb')
-pickle.dump(data, output)
-pickle.dump(nphones, output)
-pickle.dump(idx2phn, output)
-pickle.dump(phn2idx, output)
-pickle.dump(phn2group, output)
-output.close()
+print("> read "+str(len(frames))+" samples")
+with open('timit.pkl', 'wb') as output:
+  pickle.dump(frames, output)
+  pickle.dump(phonemes, output)
+  pickle.dump(nphones, output)
+  pickle.dump(idx2phn, output)
+  pickle.dump(phn2idx, output)
+  pickle.dump(phn2group, output)

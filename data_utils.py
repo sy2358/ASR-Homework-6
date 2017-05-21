@@ -60,8 +60,10 @@ def minibatches(data, minibatch_size):
         list of tuples
     """
     #TODO: shuffle samples
+    from sklearn.utils import shuffle
+    shuffled_data = shuffle(data)
     x_batch, y_batch = [], []
-    for (x, y) in data:
+    for (x, y) in shuffled_data:
         if len(x_batch) == minibatch_size:
             yield x_batch, y_batch
             x_batch, y_batch = [], []

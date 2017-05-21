@@ -8,14 +8,14 @@ class config():
     lr = 0.001
     lr_decay = 0.9
     nepoch_no_imprv = 6
-    hidden_size = 300
+    hidden_size = 200
     output_path = "results/"
     model_output = output_path + "model.weights/"
     log_path = output_path + "log.txt"
     nb_layers = 1
     keep_prob = 0.5
     variational = True
-    
+
 # From ptb_word_ml.py
 # class SmallConfig(object):
 #   """Small config."""
