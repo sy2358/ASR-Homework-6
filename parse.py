@@ -7,6 +7,8 @@ import sys
 import pickle
 from data_utils import normalize_mfcc
 
+# TODO: randomly split train and dev dataset
+
 # read phntable and build maps idx2phn and phn2idx
 # return also the number of phones
 def read_phntable(file):

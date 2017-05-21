@@ -59,6 +59,7 @@ def minibatches(data, minibatch_size):
     Returns:
         list of tuples
     """
+    #TODO: shuffle samples
     x_batch, y_batch = [], []
     for (x, y) in data:
         if len(x_batch) == minibatch_size:

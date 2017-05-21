@@ -4,6 +4,7 @@ import tensorflow as tf
 from data_utils import minibatches, pad_sequences
 from general_utils import Progbar, print_sentence
 from tensorflow.contrib.rnn import LSTMCell, MultiRNNCell, DropoutWrapper, LSTMStateTuple
+from wrappers import VariationalDropoutWrapper
 
 
 class PhoneModel(object):
@@ -94,22 +95,37 @@ class PhoneModel(object):
                 self.lstm_cell_fwd = LSTMCell(self.config.hidden_size)
                 self.lstm_cell_bwd = LSTMCell(self.config.hidden_size)
                 self.lstm_cell_fwd_dropout = DropoutWrapper(self.lstm_cell_fwd,
-                                                            output_keep_prob=self.keep_prob)
+                                                            output_keep_prob=self.keep_prob,
+                                                            variational_recurrent=self.config.variational,
+                                                            input_size=123,
+                                                            dtype=tf.float32)
                 self.lstm_cell_bwd_dropout = DropoutWrapper(self.lstm_cell_bwd,
-                                                            output_keep_prob=self.keep_prob)
-
+                                                            output_keep_prob=self.keep_prob,
+                                                            variational_recurrent=self.config.variational,
+                                                            input_size=123,
+                                                            dtype=tf.float32)
             else:
                 # Multi-layers
                 fwd_cells, bwd_cells, fwd_dropout_cells, bwd_dropout_cells = [], [], [], []
                 for _ in range(self.config.nb_layers):
                     fwd_cell = LSTMCell(self.config.hidden_size)
                     bwd_cell = LSTMCell(self.config.hidden_size)
-                    fwd_dropout_cell = DropoutWrapper(fwd_cell, output_keep_prob=self.keep_prob)
-                    bwd_dropout_cell = DropoutWrapper(bwd_cell, output_keep_prob=self.keep_prob)
                     fwd_cells += [fwd_cell]
                     bwd_cells += [bwd_cell]
-                    fwd_dropout_cells += [fwd_cell]
-                    bwd_dropout_cells += [bwd_cell]
+
+                    fwd_dropout_cell = DropoutWrapper(fwd_cell,
+                                                      output_keep_prob=self.keep_prob,
+                                                      variational_recurrent=self.config.variational,
+                                                      input_size=123,
+                                                      dtype=tf.float32)
+                    bwd_dropout_cell = DropoutWrapper(bwd_cell,
+                                                      output_keep_prob=self.keep_prob,
+                                                      variational_recurrent=self.config.variational,
+                                                      input_size=123,
+                                                      dtype=tf.float32)
+                    fwd_dropout_cells += [fwd_dropout_cell]
+                    bwd_dropout_cells += [bwd_dropout_cell]
+
                 self.lstm_cell_fwd = MultiRNNCell([fwd_cells])
                 self.lstm_cell_bwd = MultiRNNCell([bwd_cells])
                 self.lstm_cell_fwd_dropout = MultiRNNCell(fwd_dropout_cells)
@@ -284,8 +300,8 @@ class PhoneModel(object):
                 acc, per = self.run_epoch(sess, train, dev, epoch)
 
                 # decay learning rate
-                # lr_decay = config.lr_decay ** max(epoch + 1 - self.config.max_epoch, 0.0)
-                self.config.lr *= self.config.lr_decay
+                lr_decay = self.config.lr_decay ** max(epoch + 1 - 20, 0.0)
+                self.config.lr *= lr_decay
 
                 # early stopping and saving best parameters
                 if per < best_score:
