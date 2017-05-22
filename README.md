@@ -37,8 +37,6 @@ Numbers of file in each directory:
 ```
 head -200 feat_train.list > feat_train_small.list
 python parse.py feat_train_small.list train_small
-tail -100 feat_train.list > feat_dev.list
-python parse.py feat_dev.list dev
 ```
 
 ## train a model
@@ -47,7 +45,7 @@ python parse.py feat_dev.list dev
 * launch:
 
 ```
-python train.py train_small.pkl dev.pkl
+python train.py train_small.pkl
 ```
 
 Output for small file above:
@@ -112,11 +110,21 @@ Epoch 18 out of 20
 - early stopping 3 epochs without improvement
 ```
 
-# Details
+## Evaluate a model
 
-The model is:
+Compile the test set with:
 
-* a bidirectional LSTM built using `tf.nn.bidirectional_dynamic_rnn` - input is the sequence of frames
-* dropout layer for the training
-* a logit layer - generating nphones label
+```
+python parse.py feat_test.list test
+```
+
+=> will build `test.pkl`.
+
+
+Run the evaluation on `test.pkl`
+
+```
+python evaluate.py test
+```
+
 

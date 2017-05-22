@@ -324,4 +324,11 @@ class PhoneModel(object):
                 #     sv.saver.save(session, FLAGS.save_path, global_step=sv.global_step)
 
 
+    def evaluate(self, test):
+        saver = tf.train.Saver()
+        with tf.Session() as sess:
+            self.logger.info("Testing model over test set")
+            saver.restore(sess, self.config.model_output)
+            acc, per = self.run_evaluate(sess, test)
+            self.logger.info(" - dev accuracy {:04.2f} - PER {:04.2f}".format(100*acc, 100*per))
 

@@ -10,9 +10,7 @@ from sklearn.model_selection import train_test_split
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 trainset = sys.argv[1]
-assert os.path.exists(trainset), "first parameter should be training set"
-# devset = sys.argv[2]
-# assert os.path.exists(devset), "second parameter should be dev set"
+assert os.path.exists(trainset), "first parameter should be training set - compiled with parse.py"
 
 # directory for training outputs
 if not os.path.exists(config.output_path):
@@ -31,7 +29,8 @@ print(" * ",nphones,"phonemes")
 pkl_file.close()
 
 # dataset
-X_train, X_val, y_train, y_val = train_test_split(frames, phonemes, test_size=0.20, random_state=42)
+print("split train into train/dev")
+X_train, X_val, y_train, y_val = train_test_split(frames, phonemes, test_size=0.10, random_state=42)
 train_data = list(zip(X_train, y_train))
 val_data = list(zip(X_val, y_val))
 
