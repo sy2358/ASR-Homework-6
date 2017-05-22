@@ -6,9 +6,9 @@ class config():
     batch_size = 32
     # dropout = 0.2
     lr = 0.001
-    lr_decay = 0.9
+    lr_decay = 0.95
     nepoch_no_imprv = 6
-    hidden_size = 200
+    hidden_size = 400
     output_path = "results/"
     model_output = output_path + "model.weights/"
     log_path = output_path + "log.txt"
