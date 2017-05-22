@@ -3,6 +3,8 @@ import os
 import tensorflow as tf
 from data_utils import minibatches, pad_sequences
 from general_utils import Progbar, print_sentence
+from tensorflow.contrib.rnn import LSTMCell, MultiRNNCell, DropoutWrapper, LSTMStateTuple
+from wrappers import VariationalDropoutWrapper
 
 
 class PhoneModel(object):
@@ -28,6 +30,7 @@ class PhoneModel(object):
         self.phn2group = phn2group
 
 
+
     def add_placeholders(self):
         """
         Adds placeholders to self
@@ -46,7 +49,7 @@ class PhoneModel(object):
                         name="phones")
 
         # hyper parameters
-        self.dropout = tf.placeholder(dtype=tf.float32, shape=[],
+        self.keep_prob = tf.placeholder(dtype=tf.float32, shape=[],
                         name="dropout")
         self.lr = tf.placeholder(dtype=tf.float32, shape=[],
                         name="lr")
@@ -63,7 +66,7 @@ class PhoneModel(object):
         Returns:
             dict {placeholder: value}
         """
-        frames, sequence_lengths = pad_sequences(framelist, np.zeros((123),dtype=np.float32))
+        frames, sequence_lengths = pad_sequences(framelist, np.zeros((123), dtype=np.float32))
 
         # build feed dictionary
         feed = {
@@ -79,34 +82,78 @@ class PhoneModel(object):
             feed[self.lr] = lr
 
         if dropout is not None:
-            feed[self.dropout] = dropout
+            feed[self.keep_prob] = dropout
 
         return feed, sequence_lengths
 
-    def add_logits_op(self):
+    def add_logits_op(self, is_train = True):
         """
         Adds logits to self
         """
         with tf.variable_scope("bi-lstm"):
-            lstm_cell_fwd = tf.contrib.rnn.LSTMCell(self.config.hidden_size)
-            lstm_cell_bwd = tf.contrib.rnn.LSTMCell(self.config.hidden_size)
-            (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(lstm_cell_fwd,
-                lstm_cell_bwd, self.frames, sequence_length=self.sequence_lengths,
-                dtype=tf.float32)
-            output = tf.concat([output_fw, output_bw], axis=-1)
-            output = tf.nn.dropout(output, self.config.dropout)
+            if self.config.nb_layers == 1:
+                self.lstm_cell_fwd = LSTMCell(self.config.hidden_size)
+                self.lstm_cell_bwd = LSTMCell(self.config.hidden_size)
+                self.lstm_cell_fwd_dropout = DropoutWrapper(self.lstm_cell_fwd,
+                                                            output_keep_prob=self.keep_prob,
+                                                            variational_recurrent=self.config.variational,
+                                                            input_size=123,
+                                                            dtype=tf.float32)
+                self.lstm_cell_bwd_dropout = DropoutWrapper(self.lstm_cell_bwd,
+                                                            output_keep_prob=self.keep_prob,
+                                                            variational_recurrent=self.config.variational,
+                                                            input_size=123,
+                                                            dtype=tf.float32)
+            else:
+                # Multi-layers
+                fwd_cells, bwd_cells, fwd_dropout_cells, bwd_dropout_cells = [], [], [], []
+                for _ in range(self.config.nb_layers):
+                    fwd_cell = LSTMCell(self.config.hidden_size)
+                    bwd_cell = LSTMCell(self.config.hidden_size)
+                    fwd_cells += [fwd_cell]
+                    bwd_cells += [bwd_cell]
 
+                    fwd_dropout_cell = DropoutWrapper(fwd_cell,
+                                                      output_keep_prob=self.keep_prob,
+                                                      variational_recurrent=self.config.variational,
+                                                      input_size=123,
+                                                      dtype=tf.float32)
+                    bwd_dropout_cell = DropoutWrapper(bwd_cell,
+                                                      output_keep_prob=self.keep_prob,
+                                                      variational_recurrent=self.config.variational,
+                                                      input_size=123,
+                                                      dtype=tf.float32)
+                    fwd_dropout_cells += [fwd_dropout_cell]
+                    bwd_dropout_cells += [bwd_dropout_cell]
+
+                self.lstm_cell_fwd = MultiRNNCell([fwd_cells])
+                self.lstm_cell_bwd = MultiRNNCell([bwd_cells])
+                self.lstm_cell_fwd_dropout = MultiRNNCell(fwd_dropout_cells)
+                self.lstm_cell_bwd_dropout = MultiRNNCell(bwd_dropout_cells)
+
+        if is_train:
+            (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(self.lstm_cell_fwd_dropout,
+                                                                        self.lstm_cell_bwd_dropout, self.frames,
+                                                                        sequence_length=self.sequence_lengths,
+                                                                        dtype=tf.float32)
+        else:
+            (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(self.lstm_cell_fwd,
+                                                                        self.lstm_cell_bwd, self.frames,
+                                                                        sequence_length=self.sequence_lengths,
+                                                                        dtype=tf.float32)
+        output = tf.concat([output_fw, output_bw], axis=-1)
+        # output = tf.nn.dropout(output, self.config.dropout)
         with tf.variable_scope("proj"):
-            W = tf.get_variable("W", shape=[2*self.config.hidden_size, self.nphones],
-                dtype=tf.float32)
+            W = tf.get_variable("W", shape=[2 * self.config.hidden_size, self.nphones],
+                                dtype=tf.float32)
 
             b = tf.get_variable("b", shape=[self.nphones], dtype=tf.float32,
-                initializer=tf.zeros_initializer())
+                                initializer=tf.zeros_initializer())
 
-            ntime_steps = tf.shape(output)[1]
-            output = tf.reshape(output, [-1, 2*self.config.hidden_size])
-            pred = tf.matmul(output, W) + b
-            self.logits = tf.reshape(pred, [-1, ntime_steps, self.nphones])
+        ntime_steps = tf.shape(output)[1]
+        output = tf.reshape(output, [-1, 2*self.config.hidden_size])
+        pred = tf.matmul(output, W) + b
+        self.logits = tf.reshape(pred, [-1, ntime_steps, self.nphones])
 
     def add_pred_op(self):
         """
@@ -181,10 +228,10 @@ class PhoneModel(object):
             epoch: (int) number of the epoch
         """
         nbatches = (len(train) + self.config.batch_size - 1) / self.config.batch_size
-        prog = Progbar(target=nbatches)
+        prog = Progbar(target=nbatches, verbose=False)
         for i, (framelist, phones) in enumerate(minibatches(train, self.config.batch_size)):
 
-            fd, _ = self.get_feed_dict(framelist, phones, self.config.lr, self.config.dropout)
+            fd, _ = self.get_feed_dict(framelist, phones, self.config.lr, self.config.keep_prob)
 
             _, train_loss, summary = sess.run([self.train_op, self.loss, self.merged], feed_dict=fd)
 
@@ -241,6 +288,8 @@ class PhoneModel(object):
         saver = tf.train.Saver()
         # for early stopping
         nepoch_no_imprv = 0
+        # sv = tf.train.Supervisor(logdir=self.config.output_path)
+        # with sv.managed_session() as sess:
         with tf.Session() as sess:
             sess.run(self.init)
             # tensorboard
@@ -251,7 +300,8 @@ class PhoneModel(object):
                 acc, per = self.run_epoch(sess, train, dev, epoch)
 
                 # decay learning rate
-                self.config.lr *= self.config.lr_decay
+                lr_decay = self.config.lr_decay ** max(epoch + 1 - 20, 0.0)
+                self.config.lr *= lr_decay
 
                 # early stopping and saving best parameters
                 if per < best_score:
@@ -268,6 +318,10 @@ class PhoneModel(object):
                         self.logger.info("- early stopping {} epochs without improvement".format(
                                         nepoch_no_imprv))
                         break
+
+                # if FLAGS.save_path:
+                #     print("Saving model to %s." % FLAGS.save_path)
+                #     sv.saver.save(session, FLAGS.save_path, global_step=sv.global_step)
 
 
 

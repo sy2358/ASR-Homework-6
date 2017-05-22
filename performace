@@ -1,0 +1,103 @@
+<feature normalization>
+
+Epoch 1 out of 20
+ - dev accuracy 30.97 - PER 58.29
+- new best score!
+Epoch 2 out of 20
+ - dev accuracy 38.21 - PER 51.08
+- new best score!
+Epoch 3 out of 20
+ - dev accuracy 42.21 - PER 47.07
+- new best score!
+Epoch 4 out of 20
+ - dev accuracy 45.41 - PER 44.36
+- new best score!
+Epoch 5 out of 20
+ - dev accuracy 47.56 - PER 42.62
+- new best score!
+Epoch 6 out of 20
+ - dev accuracy 49.26 - PER 41.72
+- new best score!
+Epoch 7 out of 20
+ - dev accuracy 49.15 - PER 42.13
+Epoch 8 out of 20
+ - dev accuracy 51.55 - PER 40.11
+- new best score!
+Epoch 9 out of 20
+ - dev accuracy 52.57 - PER 39.34
+- new best score!
+Epoch 10 out of 20
+ - dev accuracy 52.90 - PER 39.29
+- new best score!
+Epoch 11 out of 20
+ - dev accuracy 53.14 - PER 38.66
+- new best score!
+Epoch 12 out of 20
+ - dev accuracy 53.82 - PER 38.22
+- new best score!
+Epoch 13 out of 20
+ - dev accuracy 53.48 - PER 38.44
+Epoch 14 out of 20
+ - dev accuracy 53.53 - PER 38.38
+Epoch 15 out of 20
+ - dev accuracy 53.23 - PER 38.83
+- early stopping 3 epochs without improvement
+
+<feature normalization + multi-layer>
+
+Epoch 1 out of 20
+ - dev accuracy 29.77 - PER 58.00
+- new best score!
+Epoch 2 out of 20
+ - dev accuracy 35.77 - PER 54.04
+- new best score!
+Epoch 3 out of 20
+ - dev accuracy 40.56 - PER 48.79
+- new best score!
+Epoch 4 out of 20
+ - dev accuracy 43.57 - PER 46.00
+- new best score!
+Epoch 5 out of 20
+ - dev accuracy 47.13 - PER 43.85
+- new best score!
+Epoch 6 out of 20
+ - dev accuracy 49.20 - PER 41.91
+- new best score!
+Epoch 7 out of 20
+ - dev accuracy 49.74 - PER 41.45
+- new best score!
+Epoch 8 out of 20
+ - dev accuracy 50.52 - PER 41.19
+- new best score!
+Epoch 9 out of 20
+ - dev accuracy 51.61 - PER 40.61
+- new best score!
+Epoch 10 out of 20
+ - dev accuracy 51.87 - PER 40.33
+- new best score!
+Epoch 11 out of 20
+ - dev accuracy 51.20 - PER 40.56
+Epoch 12 out of 20
+ - dev accuracy 52.04 - PER 40.70
+Epoch 13 out of 20
+ - dev accuracy 51.96 - PER 39.98
+- new best score!
+Epoch 14 out of 20
+ - dev accuracy 51.65 - PER 39.93
+- new best score!
+Epoch 15 out of 20
+ - dev accuracy 52.95 - PER 39.23
+- new best score!
+Epoch 16 out of 20
+ - dev accuracy 52.94 - PER 39.04
+- new best score!
+Epoch 17 out of 20
+ - dev accuracy 53.14 - PER 39.01
+- new best score!
+Epoch 18 out of 20
+ - dev accuracy 53.17 - PER 38.83
+- new best score!
+Epoch 19 out of 20
+ - dev accuracy 53.16 - PER 39.07
+Epoch 20 out of 20
+ - dev accuracy 53.13 - PER 38.84
