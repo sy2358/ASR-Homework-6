@@ -228,7 +228,7 @@ class PhoneModel(object):
             epoch: (int) number of the epoch
         """
         nbatches = (len(train) + self.config.batch_size - 1) / self.config.batch_size
-        prog = Progbar(target=nbatches, verbose=False)
+        prog = Progbar(target=nbatches, verbose=True)
         for i, (framelist, phones) in enumerate(minibatches(train, self.config.batch_size)):
 
             fd, _ = self.get_feed_dict(framelist, phones, self.config.lr, self.config.keep_prob)
