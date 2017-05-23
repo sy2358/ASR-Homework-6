@@ -12,7 +12,7 @@ class config():
     output_path = "results/"
     model_output = output_path + "model.weights/"
     log_path = output_path + "log.txt"
-    nb_layers = 1
+    nb_layers = 2
     keep_prob = 0.5
     variational = True
 
