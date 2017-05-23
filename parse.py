@@ -75,6 +75,10 @@ def alignFeatPhonem(phn2idx, feats, phn_sequence):
   for seq in phn_sequence:
     idx = phn2idx[seq[2]]
     start = int(math.floor(seq[0]/0.01/16000))
+    # if phns do not start at timestep 0
+    if start != end:
+      for h in range(end, start):
+        phn[h] = idx
     end = min(int(math.floor(seq[1]/0.01/16000)),feats.shape[0])
     for h in range(start, end):
       phn[h] = idx
